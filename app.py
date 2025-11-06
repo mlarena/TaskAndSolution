@@ -1,55 +1,109 @@
 import os
-import psycopg2
 from psycopg2.extras import RealDictCursor
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
 from dotenv import load_dotenv
-
-load_dotenv()
+import psycopg2
+from config import Config
 
 app = Flask(__name__)
-app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-here')
-
-# Database configuration
-DB_CONFIG = {
-    'dbname': os.getenv('DB_NAME', 'problem_tracker'),
-    'user': os.getenv('DB_USER', 'postgres'),
-    'password': os.getenv('DB_PASSWORD', '12345678'),
-    'host': os.getenv('DB_HOST', 'localhost'),
-    'port': os.getenv('DB_PORT', '5432')
-}
+app.config.from_object(Config)
 
 def get_db_connection():
-    conn = psycopg2.connect(**DB_CONFIG)
+    conn = psycopg2.connect(
+        host='localhost',
+        database='problem_tracker',
+        user='postgres',
+        password='12345678'
+    )
     return conn
-
-@app.route('/')
-def index():
-    return render_template('index.html')
 
 @app.route('/problems')
 def problems():
+    view_type = request.args.get('view', 'table')  # table или grid
+    page = request.args.get('page', 1, type=int)
+    search_term = request.args.get('search', '')
+    
     conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur = conn.cursor()
     
-    # Get all problems with their tags
-    cur.execute('''
-        SELECT p.*, array_agg(t.name) as tag_names
-        FROM problems p
-        LEFT JOIN problem_tags pt ON p.id = pt.problem_id
-        LEFT JOIN tags t ON pt.tag_id = t.id
-        GROUP BY p.id
-        ORDER BY p.created_at DESC
-    ''')
-    problems = cur.fetchall()
+    # Базовый запрос
+    query = "SELECT * FROM problems WHERE 1=1"
+    params = []
     
-    # Get all tags for the form
-    cur.execute('SELECT * FROM tags ORDER BY name')
-    tags = cur.fetchall()
+    # Применяем поиск если есть термин
+    if search_term:
+        query += " AND (title ILIKE %s OR problem ILIKE %s OR solution ILIKE %s)"
+        search_pattern = f"%{search_term}%"
+        params.extend([search_pattern, search_pattern, search_pattern])
+    
+    # Для табличного представления - пагинация
+    if view_type == 'table':
+        limit = app.config['TABLE_ROWS_PER_PAGE']
+        offset = (page - 1) * limit
+        query += " ORDER BY id LIMIT %s OFFSET %s"
+        params.extend([limit, offset])
+        
+        cur.execute(query, params)
+        problems_data = cur.fetchall()
+        
+        # Получаем общее количество для пагинации
+        count_query = "SELECT COUNT(*) FROM problems"
+        if search_term:
+            count_query += " WHERE (title ILIKE %s OR problem ILIKE %s OR solution ILIKE %s)"
+            cur.execute(count_query, [search_pattern, search_pattern, search_pattern])
+        else:
+            cur.execute(count_query)
+        
+        total_count = cur.fetchone()[0]
+        total_pages = (total_count + limit - 1) // limit
+        
+    else:  # grid view - все данные
+        query += " ORDER BY id"
+        cur.execute(query, params)
+        problems_data = cur.fetchall()
+        total_pages = 1
     
     cur.close()
     conn.close()
     
-    return render_template('problems.html', problems=problems, tags=tags)
+    return render_template('problems.html', 
+                         problems=problems_data,
+                         view_type=view_type,
+                         current_page=page,
+                         total_pages=total_pages,
+                         search_term=search_term)
+
+@app.route('/autocomplete')
+def autocomplete():
+    term = request.args.get('term', '')
+    
+    if len(term) < app.config['AUTOCOMPLETE_MIN_CHARS']:
+        return jsonify([])
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    # Ищем в title, problem, solution
+    search_pattern = f"{term}%"
+    query = """
+    SELECT DISTINCT suggestion FROM (
+        SELECT title as suggestion FROM problems WHERE title ILIKE %s
+        UNION 
+        SELECT problem as suggestion FROM problems WHERE problem ILIKE %s
+        UNION
+        SELECT solution as suggestion FROM problems WHERE solution ILIKE %s
+    ) AS suggestions 
+    LIMIT %s
+    """
+    
+    cur.execute(query, [search_pattern, search_pattern, search_pattern, 
+                       app.config['AUTOCOMPLETE_LIMIT']])
+    
+    suggestions = [row[0] for row in cur.fetchall()]
+    cur.close()
+    conn.close()
+    
+    return jsonify(suggestions)
 
 @app.route('/problem/new', methods=['GET', 'POST'])
 def new_problem():
