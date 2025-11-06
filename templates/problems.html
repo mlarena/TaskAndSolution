@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Problems & Solutions</h2>
+    <div class="header-actions">
+        <div class="view-toggle">
+            <button id="blockView" class="view-btn active" data-view="block">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <rect x="1" y="1" width="6" height="6" rx="1"/>
+                    <rect x="9" y="1" width="6" height="6" rx="1"/>
+                    <rect x="1" y="9" width="6" height="6" rx="1"/>
+                    <rect x="9" y="9" width="6" height="6" rx="1"/>
+                </svg>
+                Blocks
+            </button>
+            <button id="tableView" class="view-btn" data-view="table">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M0 1h16v1H0zM0 4h16v1H0zM0 7h16v1H0zM0 10h16v1H0zM0 13h16v1H0z"/>
+                </svg>
+                Table
+            </button>
+        </div>
+        <a href="{{ url_for('new_problem') }}" class="btn btn-primary">Create New Problem</a>
+    </div>
+</div>
+
+<!-- Block View -->
+<div id="blockViewContainer" class="problems-list block-view">
+    {% for problem in problems %}
+    <div class="problem-card">
+        <div class="problem-header">
+            <h3 class="problem-title">{{ problem.title }}</h3>
+            <!-- В блоке problem-actions добавьте кнопку View -->
+<div class="problem-actions">
+    <a href="{{ url_for('view_problem', problem_id=problem.id) }}" class="btn btn-small btn-view">View</a>
+    <a href="{{ url_for('edit_problem', problem_id=problem.id) }}" class="btn btn-small">Edit</a>
+    <form action="{{ url_for('delete_problem', problem_id=problem.id) }}" method="post" class="delete-form">
+        <button type="submit" class="btn btn-small btn-danger" onclick="return confirm('Are you sure?')">Delete</button>
+    </form>
+</div>
+        </div>
+        
+        <div class="problem-content">
+            <div class="problem-section">
+                <h4>Problem:</h4>
+                <p>{{ problem.description or 'No description provided' }}</p>
+            </div>
+            
+            <div class="problem-section">
+                <h4>Solution:</h4>
+                <p>{{ problem.solution or 'No solution provided' }}</p>
+            </div>
+            
+            {% if problem.tag_names and problem.tag_names[0] %}
+            <div class="problem-tags">
+                {% for tag in problem.tag_names %}
+                <span class="tag">{{ tag }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="problem-footer">
+            <small>Created: {{ problem.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+            {% if problem.updated_at and problem.updated_at != problem.created_at %}
+            <small>Updated: {{ problem.updated_at.strftime('%Y-%m-%d %H:%M') }}</small>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>No problems found. <a href="{{ url_for('new_problem') }}">Create the first one!</a></p>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Table View -->
+<div id="tableViewContainer" class="problems-table table-view" style="display: none;">
+    <table class="problems-table">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Problem</th>
+                <th>Solution</th>
+                <th>Tags</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for problem in problems %}
+            <tr>
+                <td class="problem-title-cell">
+                    <strong>{{ problem.title }}</strong>
+                </td>
+                <td class="problem-description-cell">
+                    {{ problem.description[:100] }}{% if problem.description|length > 100 %}...{% endif %}
+                </td>
+                <td class="problem-solution-cell">
+                    {{ problem.solution[:100] }}{% if problem.solution|length > 100 %}...{% endif %}
+                </td>
+                <td class="problem-tags-cell">
+                    {% if problem.tag_names and problem.tag_names[0] %}
+                    <div class="tags-list">
+                        {% for tag in problem.tag_names %}
+                        <span class="tag tag-small">{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </td>
+                <td class="problem-date-cell">
+                    {{ problem.created_at.strftime('%Y-%m-%d') }}
+                </td>
+                <td class="problem-actions-cell">
+                   <!-- В блоке action-buttons добавьте кнопку View -->
+<div class="action-buttons">
+    <a href="{{ url_for('view_problem', problem_id=problem.id) }}" class="btn btn-small btn-view">View</a>
+    <a href="{{ url_for('edit_problem', problem_id=problem.id) }}" class="btn btn-small">Edit</a>
+    <form action="{{ url_for('delete_problem', problem_id=problem.id) }}" method="post" class="delete-form">
+        <button type="submit" class="btn btn-small btn-danger" onclick="return confirm('Are you sure?')">Delete</button>
+    </form>
+</div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" class="empty-state">
+                    <p>No problems found. <a href="{{ url_for('new_problem') }}">Create the first one!</a></p>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero">
+    <h2>Problem & Solution Tracker</h2>
+    <p>Track issues, document solutions, and organize with tags</p>
+    <div class="hero-actions">
+        <a href="{{ url_for('problems') }}" class="btn btn-primary">View Problems</a>
+        <a href="{{ url_for('new_problem') }}" class="btn btn-secondary">Create Problem</a>
+    </div>
+</div>
+
+<div class="features">
+    <div class="feature-card">
+        <h3>Track Problems</h3>
+        <p>Document issues and challenges with detailed descriptions</p>
+    </div>
+    <div class="feature-card">
+        <h3>Store Solutions</h3>
+        <p>Keep track of solutions and how problems were resolved</p>
+    </div>
+    <div class="feature-card">
+        <h3>Organize with Tags</h3>
+        <p>Categorize problems with custom tags for easy filtering</p>
+    </div>
+</div>
+{% endblock %}

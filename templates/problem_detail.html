@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="problem-detail">
+    <div class="detail-header">
+        <h2>{{ problem.title }}</h2>
+        <div class="detail-actions">
+            <a href="{{ url_for('edit_problem', problem_id=problem.id) }}" class="btn">Edit</a>
+            <form action="{{ url_for('delete_problem', problem_id=problem.id) }}" method="post" class="delete-form">
+                <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure?')">Delete</button>
+            </form>
+            <a href="{{ url_for('problems') }}" class="btn btn-secondary">Back to List</a>
+        </div>
+    </div>
+
+    <div class="detail-content">
+        <div class="detail-section">
+            <h3>Problem Description</h3>
+            <div class="detail-text">
+                {{ problem.description or 'No description provided' | nl2br }}
+            </div>
+        </div>
+
+        <div class="detail-section">
+            <h3>Solution</h3>
+            <div class="detail-text">
+                {{ problem.solution or 'No solution provided' | nl2br }}
+            </div>
+        </div>
+
+        {% if problem.tag_names and problem.tag_names[0] %}
+        <div class="detail-section">
+            <h3>Tags</h3>
+            <div class="problem-tags">
+                {% for tag in problem.tag_names %}
+                <span class="tag">{{ tag }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="detail-meta">
+            <div class="meta-item">
+                <strong>Created:</strong> {{ problem.created_at.strftime('%Y-%m-%d %H:%M') }}
+            </div>
+            {% if problem.updated_at and problem.updated_at != problem.created_at %}
+            <div class="meta-item">
+                <strong>Updated:</strong> {{ problem.updated_at.strftime('%Y-%m-%d %H:%M') }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

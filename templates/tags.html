@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Tags Management</h2>
+</div>
+
+<div class="tags-list">
+    {% for tag in tags %}
+    <div class="tag-card">
+        <div class="tag-info">
+            <span class="tag-name">{{ tag.name }}</span>
+            <span class="tag-usage">Used in {{ tag.usage_count }} problems</span>
+        </div>
+        <form action="{{ url_for('delete_tag', tag_id=tag.id) }}" method="post" class="delete-form">
+            <button type="submit" class="btn btn-small btn-danger" 
+                onclick="return confirm('Delete tag \"{{ tag.name }}\"? This will remove it from all problems.')">
+                Delete
+            </button>
+        </form>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>No tags found.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
